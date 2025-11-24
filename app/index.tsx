@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTasks } from '../lib/context/TaskContext';
 import { useAuth } from '../lib/context/AuthContext';
@@ -40,9 +41,10 @@ export default function HomeScreen() {
           </View>
           <TouchableOpacity
             onPress={handleLogout}
-            className="bg-red-100 dark:bg-red-900/30 px-4 py-2 rounded-full"
+            className="bg-red-100 dark:bg-red-900/30 px-4 py-2 rounded-full flex-row items-center gap-2"
             activeOpacity={0.7}
           >
+            <Ionicons name="log-out-outline" size={18} color="#b91c1c" />
             <Text className="text-red-700 dark:text-red-400 font-semibold text-sm">Salir</Text>
           </TouchableOpacity>
         </View>
@@ -52,12 +54,16 @@ export default function HomeScreen() {
       <ScrollView className="flex-1 px-4" contentContainerStyle={{ paddingBottom: 150 }}>
         {/* Pendientes */}
         <View>
-          <Text className="px-2 pb-2 pt-4 text-lg font-bold text-gray-900 dark:text-white">
-            Pendientes ({pendingTasks.length})
-          </Text>
+          <View className="flex-row items-center gap-2 px-2 pb-2 pt-4">
+            <Ionicons name="list-outline" size={24} color="#111827" />
+            <Text className="text-lg font-bold text-gray-900 dark:text-white">
+              Pendientes ({pendingTasks.length})
+            </Text>
+          </View>
           {pendingTasks.length === 0 ? (
             <View className="bg-white dark:bg-gray-800 rounded-lg p-8 items-center">
-              <Text className="text-gray-400 dark:text-gray-500 text-center">
+              <Ionicons name="checkmark-done-circle-outline" size={48} color="#9CA3AF" />
+              <Text className="text-gray-400 dark:text-gray-500 text-center mt-2">
                 No hay tareas pendientes
               </Text>
             </View>
@@ -73,9 +79,12 @@ export default function HomeScreen() {
         {/* Completadas */}
         {completedTasks.length > 0 && (
           <View className="mt-8">
-            <Text className="px-2 pb-2 pt-4 text-lg font-bold text-gray-900 dark:text-white">
-              Completadas ({completedTasks.length})
-            </Text>
+            <View className="flex-row items-center gap-2 px-2 pb-2 pt-4">
+              <Ionicons name="checkmark-done" size={24} color="#10b981" />
+              <Text className="text-lg font-bold text-gray-900 dark:text-white">
+                Completadas ({completedTasks.length})
+              </Text>
+            </View>
             <View>
               {completedTasks.map((task) => (
                 <TaskItem key={task.id} task={task} />
@@ -102,14 +111,14 @@ export default function HomeScreen() {
             className="h-12 w-12 items-center justify-center rounded-full bg-primary shadow-lg"
             activeOpacity={0.8}
           >
-            <Text className="text-white text-3xl font-light">+</Text>
+            <Ionicons name="add" size={28} color="white" />
           </TouchableOpacity>
         </View>
 
         {/* Navigation bar */}
         <View className="flex-row items-center justify-around h-16 border-t border-gray-200 dark:border-gray-800 bg-background-light dark:bg-background-dark">
           <TouchableOpacity className="flex-1 items-center justify-center gap-1">
-            <Text className="text-primary text-2xl">✓</Text>
+            <Ionicons name="list" size={24} color="#7f19e6" />
             <Text className="text-xs font-bold text-primary">Tareas</Text>
           </TouchableOpacity>
           
@@ -117,12 +126,12 @@ export default function HomeScreen() {
             onPress={() => router.push('/create')}
             className="flex-1 items-center justify-center gap-1"
           >
-            <Text className="text-gray-500 dark:text-gray-400 text-2xl">+</Text>
+            <Ionicons name="add-circle-outline" size={24} color="#6B7280" />
             <Text className="text-xs font-medium text-gray-500 dark:text-gray-400">Nueva</Text>
           </TouchableOpacity>
           
           <TouchableOpacity className="flex-1 items-center justify-center gap-1">
-            <Text className="text-gray-500 dark:text-gray-400 text-2xl">⚙</Text>
+            <Ionicons name="settings-outline" size={24} color="#6B7280" />
             <Text className="text-xs font-medium text-gray-500 dark:text-gray-400">Ajustes</Text>
           </TouchableOpacity>
         </View>

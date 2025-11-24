@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '../lib/context/AuthContext';
-import { LoginFormData, AuthValidationErrors } from '../lib/types/Auth';
-import { validateLoginForm } from '../lib/utils/authValidation';
+import { loginSchema, LoginFormData } from '../lib/schemas/authSchema';
+import { AuthValidationErrors } from '../lib/types/Auth';
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -17,110 +18,166 @@ export default function LoginScreen() {
 
   const handleChange = (field: keyof LoginFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
     if (touched[field]) {
-      setErrors(validateLoginForm({ ...formData, [field]: value }));
+      const result = loginSchema.safeParse({ ...formData, [field]: value });
+      if (!result.success) {
+        const fieldErrors: AuthValidationErrors = {};
+        result.error.issues.forEach((issue) => {
+          if (issue.path[0]) {
+            fieldErrors[issue.path[0] as keyof AuthValidationErrors] = issue.message;
+          }
+        });
+        setErrors(fieldErrors);
+      } else {
+        setErrors({});
+      }
     }
   };
 
   const handleBlur = (field: keyof LoginFormData) => {
     setTouched(prev => ({ ...prev, [field]: true }));
-    setErrors(validateLoginForm(formData));
+    
+    const result = loginSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: AuthValidationErrors = {};
+      result.error.issues.forEach((issue) => {
+        if (issue.path[0]) {
+          fieldErrors[issue.path[0] as keyof AuthValidationErrors] = issue.message;
+        }
+      });
+      setErrors(fieldErrors);
+    }
   };
 
   const handleSubmit = async () => {
-    const validationErrors = validateLoginForm(formData);
-    setErrors(validationErrors);
     setTouched({ email: true, password: true });
 
-    if (Object.keys(validationErrors).length === 0) {
-      setLoading(true);
-      const success = await login(formData);
-      setLoading(false);
+    const result = loginSchema.safeParse(formData);
+    
+    if (!result.success) {
+      const fieldErrors: AuthValidationErrors = {};
+      result.error.issues.forEach((issue) => {
+        if (issue.path[0]) {
+          fieldErrors[issue.path[0] as keyof AuthValidationErrors] = issue.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return;
+    }
 
-      if (success) {
-        router.replace('/');
-      } else {
-        Alert.alert('Error', 'Email o contraseña incorrectos');
-      }
+    setErrors({});
+    setLoading(true);
+    const success = await login(result.data);
+    setLoading(false);
+
+    if (success) {
+      router.replace('/');
+    } else {
+      Alert.alert('Error', 'Email o contraseña incorrectos');
     }
   };
 
   return (
-    <View className="flex-1 bg-background-light dark:bg-background-dark">
+    <View className="flex-1" style={{ backgroundColor: '#f0f4f8' }}>
+      <View 
+        className="absolute top-0 left-0 right-0 h-96" 
+        style={{ 
+          backgroundColor: '#e0e7ff',
+          borderBottomLeftRadius: 50,
+          borderBottomRightRadius: 50,
+        }} 
+      />
+      
       <ScrollView 
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
       >
-        <View className="items-center mb-12">
-          <View className="w-20 h-20 rounded-full bg-primary/10 items-center justify-center mb-4">
-            <Text className="text-5xl">📝</Text>
+        <View className="absolute top-20 right-10 w-32 h-32 rounded-full" style={{ backgroundColor: '#c7d2fe', opacity: 0.5 }} />
+        <View className="absolute top-40 left-5 w-24 h-24 rounded-full" style={{ backgroundColor: '#ddd6fe', opacity: 0.3 }} />
+
+        <View className="items-center mb-12 relative z-10">
+          <View className="w-24 h-24 rounded-full items-center justify-center mb-6" style={{ backgroundColor: '#818cf8' }}>
+            <Ionicons name="checkmark-done" size={48} color="white" />
           </View>
-          <Text className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            Bienvenido
+          <Text className="text-4xl font-bold text-gray-800 mb-2">
+            Hola de nuevo
           </Text>
-          <Text className="text-gray-500 dark:text-gray-400">
-            Inicia sesión para continuar
+          <Text className="text-gray-600 text-center">
+            Tus tareas te esperan
           </Text>
         </View>
 
-        <View className="gap-5">
+        <View className="gap-5 relative z-10">
           <View>
-            <Text className="text-gray-700 dark:text-gray-300 font-semibold mb-2 px-1">
-              Email
-            </Text>
-            <TextInput
-              className={`rounded-xl border bg-white dark:bg-gray-800 px-4 py-4 text-gray-900 dark:text-white ${
-                errors.email && touched.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
-              }`}
-              value={formData.email}
-              onChangeText={(text) => handleChange('email', text)}
-              onBlur={() => handleBlur('email')}
-              placeholder="tu@email.com"
-              placeholderTextColor="#9CA3AF"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+            <Text className="text-gray-700 font-semibold mb-2 px-1">Email</Text>
+            <View className="relative">
+              <View className="absolute left-4 top-4 z-10">
+                <Ionicons name="mail-outline" size={20} color="#9CA3AF" />
+              </View>
+              <TextInput
+                className={`rounded-2xl pl-12 pr-4 py-4 text-gray-900 shadow-sm ${
+                  errors.email && touched.email ? 'bg-red-50 border-2 border-red-300' : 'bg-white/90'
+                }`}
+                value={formData.email}
+                onChangeText={(text) => handleChange('email', text)}
+                onBlur={() => handleBlur('email')}
+                placeholder="tu@email.com"
+                placeholderTextColor="#9CA3AF"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
             {errors.email && touched.email && (
               <Text className="text-red-500 text-sm mt-1 px-1">{errors.email}</Text>
             )}
           </View>
 
           <View>
-            <Text className="text-gray-700 dark:text-gray-300 font-semibold mb-2 px-1">
-              Contraseña
-            </Text>
-            <TextInput
-              className={`rounded-xl border bg-white dark:bg-gray-800 px-4 py-4 text-gray-900 dark:text-white ${
-                errors.password && touched.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
-              }`}
-              value={formData.password}
-              onChangeText={(text) => handleChange('password', text)}
-              onBlur={() => handleBlur('password')}
-              placeholder="••••••••"
-              placeholderTextColor="#9CA3AF"
-              secureTextEntry
-            />
+            <Text className="text-gray-700 font-semibold mb-2 px-1">Contraseña</Text>
+            <View className="relative">
+              <View className="absolute left-4 top-4 z-10">
+                <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" />
+              </View>
+              <TextInput
+                className={`rounded-2xl pl-12 pr-4 py-4 text-gray-900 shadow-sm ${
+                  errors.password && touched.password ? 'bg-red-50 border-2 border-red-300' : 'bg-white/90'
+                }`}
+                value={formData.password}
+                onChangeText={(text) => handleChange('password', text)}
+                onBlur={() => handleBlur('password')}
+                placeholder="••••••••"
+                placeholderTextColor="#9CA3AF"
+                secureTextEntry
+              />
+            </View>
             {errors.password && touched.password && (
               <Text className="text-red-500 text-sm mt-1 px-1">{errors.password}</Text>
             )}
           </View>
 
           <TouchableOpacity
-            className={`py-4 rounded-xl mt-4 shadow-lg ${
-              loading ? 'bg-primary/70' : 'bg-primary'
+            className={`py-4 rounded-2xl mt-4 shadow-lg flex-row items-center justify-center gap-2 ${
+              loading ? 'opacity-70' : ''
             }`}
+            style={{ backgroundColor: '#818cf8' }}
             onPress={handleSubmit}
             disabled={loading}
             activeOpacity={0.8}
           >
+            {loading ? (
+              <Ionicons name="hourglass-outline" size={20} color="white" />
+            ) : (
+              <Ionicons name="log-in-outline" size={20} color="white" />
+            )}
             <Text className="text-white text-center font-bold text-base">
               {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </Text>
           </TouchableOpacity>
 
           <View className="flex-row justify-center mt-8">
-            <Text className="text-gray-600 dark:text-gray-400">¿No tienes cuenta? </Text>
+            <Text className="text-gray-600">¿No tienes cuenta? </Text>
             <TouchableOpacity onPress={() => router.push('/register')}>
-              <Text className="text-primary font-bold">Regístrate</Text>
+              <Text className="font-bold" style={{ color: '#818cf8' }}>Regístrate</Text>
             </TouchableOpacity>
           </View>
         </View>

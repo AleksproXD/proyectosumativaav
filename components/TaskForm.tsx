@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity } from 'react-native';
-import { TaskFormData, ValidationErrors } from '../lib/types/Task';
-import { validateTaskForm } from '../lib/utils/validation';
+import { taskSchema, TaskFormData } from '../lib/schemas/taskSchema';
+import { ValidationErrors } from '../lib/types/Task';
 
 interface TaskFormProps {
   initialData?: TaskFormData;
@@ -22,24 +22,52 @@ export const TaskForm = ({
     setFormData(prev => ({ ...prev, [field]: value }));
     
     if (touched[field]) {
-      const newErrors = validateTaskForm({ ...formData, [field]: value });
-      setErrors(newErrors);
+      const result = taskSchema.safeParse({ ...formData, [field]: value });
+      if (!result.success) {
+        const fieldErrors: ValidationErrors = {};
+        result.error.issues.forEach((issue) => {
+          if (issue.path[0]) {
+            fieldErrors[issue.path[0] as keyof ValidationErrors] = issue.message;
+          }
+        });
+        setErrors(fieldErrors);
+      } else {
+        setErrors({});
+      }
     }
   };
 
   const handleBlur = (field: keyof TaskFormData) => {
     setTouched(prev => ({ ...prev, [field]: true }));
-    const newErrors = validateTaskForm(formData);
-    setErrors(newErrors);
+    
+    const result = taskSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: ValidationErrors = {};
+      result.error.issues.forEach((issue) => {
+        if (issue.path[0]) {
+          fieldErrors[issue.path[0] as keyof ValidationErrors] = issue.message;
+        }
+      });
+      setErrors(fieldErrors);
+    }
   };
 
   const handleSubmit = () => {
-    const validationErrors = validateTaskForm(formData);
-    setErrors(validationErrors);
     setTouched({ title: true, description: true });
 
-    if (Object.keys(validationErrors).length === 0) {
-      onSubmit(formData);
+    const result = taskSchema.safeParse(formData);
+    
+    if (!result.success) {
+      const fieldErrors: ValidationErrors = {};
+      result.error.issues.forEach((issue) => {
+        if (issue.path[0]) {
+          fieldErrors[issue.path[0] as keyof ValidationErrors] = issue.message;
+        }
+      });
+      setErrors(fieldErrors);
+    } else {
+      setErrors({});
+      onSubmit(result.data);
       setFormData({ title: '', description: '' });
       setTouched({ title: false, description: false });
     }

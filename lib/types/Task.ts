@@ -1,17 +1,15 @@
 export interface Task {
-    id: string;
-    title: string;
-    description: string;
-    completed: boolean;
-    createdAt: string;
-  }
-  
-  export interface TaskFormData {
-    title: string;
-    description: string;
-  }
-  
-  export interface ValidationErrors {
-    title?: string;
-    description?: string;
-  }
+  id: string;
+  title: string;
+  description: string;
+  completed: boolean;
+  createdAt: string;
+}
+
+// Ahora TaskFormData viene de Zod
+export type { TaskFormData } from '../schemas/taskSchema';
+
+export interface ValidationErrors {
+  title?: string;
+  description?: string;
+}

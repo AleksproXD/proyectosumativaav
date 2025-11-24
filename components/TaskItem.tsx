@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Task } from '../lib/types/Task';
 import { useTasks } from '../lib/context/TaskContext';
 import { router } from 'expo-router';
@@ -29,15 +30,16 @@ export const TaskItem = ({ task }: TaskItemProps) => {
         }`}
         activeOpacity={0.7}
       >
+        {/* Checkbox circular con icono */}
         <View
-          className={`h-6 w-6 rounded-full border-2 items-center justify-center ${
+          className={`h-8 w-8 rounded-full border-2 items-center justify-center ${
             task.completed
               ? 'bg-primary border-primary'
               : 'border-primary/50'
           }`}
         >
           {task.completed && (
-            <Text className="text-white text-xs font-bold">✓</Text>
+            <Ionicons name="checkmark" size={20} color="white" />
           )}
         </View>
 
@@ -52,11 +54,23 @@ export const TaskItem = ({ task }: TaskItemProps) => {
             {task.title}
           </Text>
           {task.description && !task.completed && (
-            <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {task.description}
-            </Text>
+            <View className="flex-row items-start gap-1 mt-1">
+              <Ionicons name="document-text-outline" size={14} color="#6B7280" />
+              <Text className="text-sm text-gray-500 dark:text-gray-400 flex-1">
+                {task.description}
+              </Text>
+            </View>
           )}
         </View>
+
+        {/* Icono de editar */}
+        <TouchableOpacity onPress={handleEdit} className="p-2">
+          <Ionicons 
+            name="pencil-outline" 
+            size={20} 
+            color={task.completed ? "#9CA3AF" : "#7f19e6"} 
+          />
+        </TouchableOpacity>
       </TouchableOpacity>
     </View>
   );
