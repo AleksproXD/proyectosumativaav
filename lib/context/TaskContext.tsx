@@ -1,14 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Task } from '../types/Task';
 import { useAuth } from './AuthContext';
-import { loadDatabase, saveDatabase } from '../services/database';
+import { api } from '../services/api';
 
 interface TaskContextType {
   tasks: Task[];
-  addTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
-  updateTask: (id: string, task: Partial<Task>) => void;
-  deleteTask: (id: string) => void;
+  addTask: (task: Omit<Task, 'id' | 'createdAt'>) => Promise<void>;
+  updateTask: (id: string, task: Partial<Task>) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
   getTaskById: (id: string) => Task | undefined;
+  loading: boolean;
 }
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -16,76 +17,70 @@ const TaskContext = createContext<TaskContextType | undefined>(undefined);
 export const TaskProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
       loadTasks(user.id);
     } else {
       setTasks([]);
+      setLoading(false);
     }
   }, [user]);
 
   const loadTasks = async (userId: string) => {
     try {
-      const db = await loadDatabase();
-      const userTasks = db.tasks.filter(task => task.userId === userId);
-      setTasks(userTasks);
+      setLoading(true);
+      const data = await api.get<Task[]>(`/tasks?userId=${userId}`);
+      setTasks(data);
     } catch (error) {
       console.error('Error cargando tareas:', error);
       setTasks([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const saveTasks = async (updatedTasks: Task[]) => {
+  const addTask = async (task: Omit<Task, 'id' | 'createdAt'>) => {
     if (!user) return;
-    
+
     try {
-      const db = await loadDatabase();
-      // Remover tareas del usuario actual
-      db.tasks = db.tasks.filter(task => task.userId !== user.id);
-      // Agregar tareas actualizadas
-      db.tasks.push(...updatedTasks.map(task => ({ ...task, userId: user.id })));
-      await saveDatabase(db);
+      const newTask = await api.post<Task>('/tasks', {
+        ...task,
+        userId: user.id,
+        createdAt: new Date().toISOString(),
+      });
+      setTasks(prev => [...prev, newTask]);
     } catch (error) {
-      console.error('Error guardando tareas:', error);
+      console.error('Error agregando tarea:', error);
+      throw error;
     }
   };
 
-  const addTask = (task: Omit<Task, 'id' | 'createdAt'>) => {
-    const newTask: Task = {
-      ...task,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    
-    const updatedTasks = [...tasks, newTask];
-    setTasks(updatedTasks);
-    saveTasks(updatedTasks);
+  const updateTask = async (id: string, updates: Partial<Task>) => {
+    try {
+      const updated = await api.patch<Task>(`/tasks/${id}`, updates);
+      setTasks(prev => prev.map(task => (task.id === id ? updated : task)));
+    } catch (error) {
+      console.error('Error actualizando tarea:', error);
+      throw error;
+    }
   };
 
-  const updateTask = (id: string, updatedTask: Partial<Task>) => {
-    const updatedTasks = tasks.map(task =>
-      task.id === id ? { ...task, ...updatedTask } : task
-    );
-    
-    setTasks(updatedTasks);
-    saveTasks(updatedTasks);
+  const deleteTask = async (id: string) => {
+    try {
+      await api.delete(`/tasks/${id}`);
+      setTasks(prev => prev.filter(task => task.id !== id));
+    } catch (error) {
+      console.error('Error eliminando tarea:', error);
+      throw error;
+    }
   };
 
-  const deleteTask = (id: string) => {
-    const updatedTasks = tasks.filter(task => task.id !== id);
-    setTasks(updatedTasks);
-    saveTasks(updatedTasks);
-  };
-
-  const getTaskById = (id: string) => {
-    return tasks.find(task => task.id === id);
-  };
+  const getTaskById = (id: string) => tasks.find(task => task.id === id);
 
   return (
-    <TaskContext.Provider
-      value={{ tasks, addTask, updateTask, deleteTask, getTaskById }}
-    >
+    <TaskContext.Provider value={{ tasks, addTask, updateTask, deleteTask, getTaskById, loading }}>
       {children}
     </TaskContext.Provider>
   );
@@ -93,8 +88,6 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
 
 export const useTasks = () => {
   const context = useContext(TaskContext);
-  if (!context) {
-    throw new Error('useTasks debe usarse dentro de TaskProvider');
-  }
+  if (!context) throw new Error('useTasks debe usarse dentro de TaskProvider');
   return context;
 };

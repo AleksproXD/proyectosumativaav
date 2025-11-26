@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, LoginFormData, RegisterFormData } from '../types/Auth';
-import { loadDatabase, saveDatabase } from '../services/database';
+import { api } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (data: LoginFormData) => Promise<boolean>;
   register: (data: RegisterFormData) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
@@ -18,96 +18,74 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadCurrentUser();
+    loadSession();
   }, []);
 
-  const loadCurrentUser = async () => {
+  const loadSession = async () => {
     try {
-      const db = await loadDatabase();
-      if (db.currentUser) {
-        setUser(db.currentUser);
+      const sessions = await api.get<any[]>('/sessions');
+      if (sessions.length > 0) {
+        const userData = await api.get<any>(`/users/${sessions[0].userId}`);
+        setUser({ id: userData.id, email: userData.email, name: userData.name });
       }
     } catch (error) {
-      console.error('Error cargando usuario:', error);
+      console.error('Error cargando sesión:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const login = async (data: LoginFormData): Promise<boolean> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const users = await api.get<any[]>(`/users?email=${data.email}`);
+      const foundUser = users.find(u => u.password === data.password);
 
-    const db = await loadDatabase();
-    const foundUser = db.users.find(
-      u => u.email === data.email && u.password === data.password
-    );
-
-    if (foundUser) {
-      const userData: User = {
-        id: foundUser.id,
-        email: foundUser.email,
-        name: foundUser.name,
-      };
-      
-      setUser(userData);
-      db.currentUser = userData;
-      await saveDatabase(db);
-      return true;
+      if (foundUser) {
+        await api.post('/sessions', { userId: foundUser.id });
+        setUser({ id: foundUser.id, email: foundUser.email, name: foundUser.name });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error en login:', error);
+      return false;
     }
-
-    return false;
   };
 
   const register = async (data: RegisterFormData): Promise<boolean> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const users = await api.get<any[]>(`/users?email=${data.email}`);
+      if (users.length > 0) return false;
 
-    const db = await loadDatabase();
-    const existingUser = db.users.find(u => u.email === data.email);
-    
-    if (existingUser) {
+      const newUser = await api.post<any>('/users', {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+      });
+
+      await api.post('/sessions', { userId: newUser.id });
+      setUser({ id: newUser.id, email: newUser.email, name: newUser.name });
+      return true;
+    } catch (error) {
+      console.error('Error en registro:', error);
       return false;
     }
-
-    const newUser = {
-      id: Date.now().toString(),
-      email: data.email,
-      password: data.password,
-      name: data.name,
-    };
-
-    db.users.push(newUser);
-
-    const userData: User = {
-      id: newUser.id,
-      email: newUser.email,
-      name: newUser.name,
-    };
-
-    setUser(userData);
-    db.currentUser = userData;
-    await saveDatabase(db);
-
-    return true;
   };
 
   const logout = async () => {
-    setUser(null);
-    const db = await loadDatabase();
-    db.currentUser = null;
-    await saveDatabase(db);
+    try {
+      const sessions = await api.get<any[]>('/sessions');
+      for (const session of sessions) {
+        await api.delete(`/sessions/${session.id}`);
+      }
+      setUser(null);
+    } catch (error) {
+      console.error('Error cerrando sesión:', error);
+    }
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        login,
-        register,
-        logout,
-        loading,
-      }}
-    >
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
@@ -115,8 +93,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth debe usarse dentro de AuthProvider');
-  }
+  if (!context) throw new Error('useAuth debe usarse dentro de AuthProvider');
   return context;
 };

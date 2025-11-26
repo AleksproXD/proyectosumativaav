@@ -1,7 +1,5 @@
 import * as FileSystem from 'expo-file-system';
-
-// @ts-ignore - Solución temporal para problema de tipos
-const DB_FILE = `${FileSystem.documentDirectory}db.json`;
+import { Platform } from 'react-native';
 
 export interface Database {
   users: Array<{
@@ -31,29 +29,68 @@ const defaultDB: Database = {
   currentUser: null,
 };
 
-export const loadDatabase = async (): Promise<Database> => {
+const DB_KEY = 'app_database';
+
+// ==================== WEB ====================
+const loadDatabaseWeb = (): Database => {
   try {
-    // @ts-ignore
-    const fileInfo = await FileSystem.getInfoAsync(DB_FILE);
-    if (fileInfo.exists) {
-      // @ts-ignore
-      const content = await FileSystem.readAsStringAsync(DB_FILE);
-      return JSON.parse(content);
+    const data = localStorage.getItem(DB_KEY);
+    if (data) {
+      return JSON.parse(data);
     }
-    // Si no existe, crear el archivo con datos por defecto
-    await saveDatabase(defaultDB);
     return defaultDB;
   } catch (error) {
-    console.error('Error cargando db.json:', error);
+    console.error('Error cargando DB (web):', error);
     return defaultDB;
   }
 };
 
-export const saveDatabase = async (data: Database): Promise<void> => {
+const saveDatabaseWeb = (data: Database): void => {
   try {
-    // @ts-ignore
+    localStorage.setItem(DB_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error('Error guardando DB (web):', error);
+  }
+};
+
+// ==================== MOBILE ====================
+const DB_FILE = `${FileSystem.documentDirectory}db.json`;
+
+const loadDatabaseMobile = async (): Promise<Database> => {
+  try {
+    const fileInfo = await FileSystem.getInfoAsync(DB_FILE);
+    if (fileInfo.exists) {
+      const content = await FileSystem.readAsStringAsync(DB_FILE);
+      return JSON.parse(content);
+    }
+    await saveDatabaseMobile(defaultDB);
+    return defaultDB;
+  } catch (error) {
+    console.error('Error cargando DB (mobile):', error);
+    return defaultDB;
+  }
+};
+
+const saveDatabaseMobile = async (data: Database): Promise<void> => {
+  try {
     await FileSystem.writeAsStringAsync(DB_FILE, JSON.stringify(data, null, 2));
   } catch (error) {
-    console.error('Error guardando db.json:', error);
+    console.error('Error guardando DB (mobile):', error);
+  }
+};
+
+// ==================== EXPORTS ====================
+export const loadDatabase = async (): Promise<Database> => {
+  if (Platform.OS === 'web') {
+    return loadDatabaseWeb();
+  }
+  return await loadDatabaseMobile();
+};
+
+export const saveDatabase = async (data: Database): Promise<void> => {
+  if (Platform.OS === 'web') {
+    saveDatabaseWeb(data);
+  } else {
+    await saveDatabaseMobile(data);
   }
 };

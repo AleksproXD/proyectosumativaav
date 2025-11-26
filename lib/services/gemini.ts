@@ -15,85 +15,111 @@ export interface AITaskSuggestion {
 }
 
 export const geminiService = {
-  // Generar tareas a partir de un prompt
   async generateTasks(prompt: string): Promise<AITaskSuggestion[]> {
     try {
-      const systemPrompt = `Eres un asistente de productividad. Tu trabajo es generar tareas específicas y accionables basadas en lo que el usuario te pide.
+      console.log('🤖 Generando tareas con prompt:', prompt);
 
-REGLAS IMPORTANTES:
-- Genera entre 1 y 5 tareas máximo
-- Cada tarea debe tener un título corto (máximo 50 caracteres)
-- Cada descripción debe ser clara y específica (máximo 150 caracteres)
-- Usa solo letras, números y espacios (sin caracteres especiales)
-- Las tareas deben ser realistas y accionables
+      const systemPrompt = `Eres un asistente de productividad experto. Genera tareas específicas y accionables.
 
-RESPONDE SOLO EN FORMATO JSON, sin markdown ni explicaciones:
-[
-  {
-    "title": "título de la tarea",
-    "description": "descripción detallada"
-  }
-]`;
+IMPORTANTE:
+- Genera entre 3 y 5 tareas
+- Títulos cortos (máximo 40 caracteres)
+- Descripciones claras (máximo 100 caracteres)
+- Solo letras, números, espacios y tildes
+- Tareas realistas y específicas
+
+Responde SOLO con un JSON válido, sin texto adicional, sin markdown:
+[{"title":"título aquí","description":"descripción aquí"}]`;
 
       const result = await model.generateContent([
         systemPrompt,
-        `\nPrompt del usuario: ${prompt}\n\nGenera las tareas en JSON:`
+        `Usuario pide: ${prompt}`,
       ]);
 
       const response = result.response.text();
-      
-      // Limpiar la respuesta (remover markdown si existe)
+      console.log('📝 Respuesta raw de Gemini:', response);
+
+      // Limpiar respuesta
       let jsonText = response.trim();
-      if (jsonText.startsWith('```json')) {
-        jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-      } else if (jsonText.startsWith('```')) {
-        jsonText = jsonText.replace(/```\n?/g, '');
+      
+      // Remover markdown
+      jsonText = jsonText.replace(/```json\n?/g, '');
+      jsonText = jsonText.replace(/```\n?/g, '');
+      jsonText = jsonText.trim();
+
+      console.log('🧹 Texto limpio:', jsonText);
+
+      // Intentar parsear
+      const tasks: AITaskSuggestion[] = JSON.parse(jsonText);
+
+      // Validar que sea un array
+      if (!Array.isArray(tasks)) {
+        throw new Error('La respuesta no es un array');
       }
 
-      const tasks: AITaskSuggestion[] = JSON.parse(jsonText);
-      
-      // Validar y limpiar tareas
-      return tasks.map(task => ({
-        title: task.title.slice(0, 50).trim(),
-        description: task.description.slice(0, 150).trim(),
-      })).slice(0, 5); // Máximo 5 tareas
+      // Limpiar y validar tareas
+      const cleanedTasks = tasks
+        .filter(task => task.title && task.description)
+        .map(task => ({
+          title: task.title.slice(0, 50).trim(),
+          description: task.description.slice(0, 150).trim(),
+        }))
+        .slice(0, 5);
 
-    } catch (error) {
-      console.error('Error al generar tareas con IA:', error);
-      throw new Error('No se pudieron generar tareas. Intenta con otro prompt.');
+      console.log('✅ Tareas generadas:', cleanedTasks);
+
+      if (cleanedTasks.length === 0) {
+        throw new Error('No se generaron tareas válidas');
+      }
+
+      return cleanedTasks;
+
+    } catch (error: any) {
+      console.error('❌ Error completo:', error);
+      
+      // Mensajes de error más específicos
+      if (error.message?.includes('API key')) {
+        throw new Error('API Key inválida. Verifica tu configuración.');
+      }
+      
+      if (error.message?.includes('quota')) {
+        throw new Error('Límite de API alcanzado. Intenta más tarde.');
+      }
+
+      if (error.message?.includes('JSON')) {
+        throw new Error('Error al procesar respuesta. Intenta con otro prompt.');
+      }
+
+      if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        throw new Error('Error de conexión. Verifica tu internet.');
+      }
+
+      throw new Error('No se pudieron generar tareas. Intenta de nuevo.');
     }
   },
 
-  // Mejorar una tarea existente
   async improveTask(title: string, description: string): Promise<AITaskSuggestion> {
     try {
-      const systemPrompt = `Eres un experto en productividad. Mejora la siguiente tarea haciéndola más específica, clara y accionable.
+      const systemPrompt = `Mejora esta tarea haciéndola más específica y accionable.
 
 REGLAS:
-- Título: máximo 50 caracteres
-- Descripción: máximo 150 caracteres
-- Solo letras, números y espacios
-- Hazla más específica y accionable
+- Título: máximo 40 caracteres
+- Descripción: máximo 100 caracteres
+- Solo letras, números, espacios y tildes
 
-RESPONDE SOLO EN FORMATO JSON:
-{
-  "title": "título mejorado",
-  "description": "descripción mejorada"
-}`;
+Responde SOLO con JSON:
+{"title":"título mejorado","description":"descripción mejorada"}`;
 
       const result = await model.generateContent([
         systemPrompt,
-        `\nTarea actual:\nTítulo: ${title}\nDescripción: ${description}\n\nMejora esta tarea:`
+        `Tarea: ${title}\nDescripción: ${description}`,
       ]);
 
       const response = result.response.text();
-      let jsonText = response.trim();
-      
-      if (jsonText.startsWith('```json')) {
-        jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-      } else if (jsonText.startsWith('```')) {
-        jsonText = jsonText.replace(/```\n?/g, '');
-      }
+      let jsonText = response.trim()
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
 
       const improved: AITaskSuggestion = JSON.parse(jsonText);
       
@@ -108,41 +134,31 @@ RESPONDE SOLO EN FORMATO JSON:
     }
   },
 
-  // Generar sugerencias de tareas basadas en las existentes
   async suggestNextTasks(completedTasks: string[]): Promise<AITaskSuggestion[]> {
     try {
-      const systemPrompt = `Eres un asistente de productividad. Basándote en las tareas que el usuario ya completó, sugiere 3 tareas relacionadas que podría hacer a continuación.
+      const systemPrompt = `Basándote en estas tareas completadas, sugiere 3 nuevas tareas relacionadas.
 
 REGLAS:
-- Genera exactamente 3 tareas
-- Que sean relacionadas pero no repetitivas
-- Título: máximo 50 caracteres
-- Descripción: máximo 150 caracteres
-- Solo letras, números y espacios
+- Exactamente 3 tareas
+- Relacionadas pero no repetitivas
+- Título: máximo 40 caracteres
+- Descripción: máximo 100 caracteres
 
-RESPONDE SOLO EN FORMATO JSON:
-[
-  {
-    "title": "título",
-    "description": "descripción"
-  }
-]`;
+Responde SOLO con JSON:
+[{"title":"título","description":"descripción"}]`;
 
       const tasksList = completedTasks.slice(0, 5).join(', ');
       
       const result = await model.generateContent([
         systemPrompt,
-        `\nTareas completadas: ${tasksList}\n\nSugiere 3 tareas nuevas:`
+        `Tareas completadas: ${tasksList}`,
       ]);
 
       const response = result.response.text();
-      let jsonText = response.trim();
-      
-      if (jsonText.startsWith('```json')) {
-        jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-      } else if (jsonText.startsWith('```')) {
-        jsonText = jsonText.replace(/```\n?/g, '');
-      }
+      let jsonText = response.trim()
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
 
       const tasks: AITaskSuggestion[] = JSON.parse(jsonText);
       
