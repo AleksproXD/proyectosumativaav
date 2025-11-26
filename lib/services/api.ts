@@ -1,4 +1,4 @@
-export const API_URL = 'http://localhost:3000';
+export const API_URL = 'https://3000-firebase-proyectosumativaav-1763328787219.cluster-gizzoza7hzhfyxzo5d76y3flkw.cloudworkstations.dev';
 
 export const api = {
   async get<T>(endpoint: string): Promise<T> {

@@ -1,0 +1,58 @@
+{
+  "users": [
+    {
+      "id": "23c6",
+      "name": "alex",
+      "email": "tu@gmail.com",
+      "password": "123456789Alex"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "2624",
+      "title": "eppew",
+      "description": "eqwe qweqw",
+      "completed": true,
+      "userId": "23c6",
+      "createdAt": "2025-11-26T20:47:57.797Z"
+    },
+    {
+      "id": "04ed",
+      "title": "pepe",
+      "description": "",
+      "completed": false,
+      "userId": "23c6",
+      "createdAt": "2025-11-26T20:49:28.857Z"
+    },
+    {
+      "id": "7626",
+      "title": "pepe ",
+      "description": "trabgajar",
+      "completed": false,
+      "userId": "23c6",
+      "createdAt": "2025-11-26T20:49:36.075Z"
+    },
+    {
+      "id": "2c20",
+      "title": "Preparar Caja de Primeras Necesidades",
+      "description": "Empaca una caja con artículos esenciales para el primer día: medicinas, aseo personal, cargadores, ropa de cambio y documentos importantes.",
+      "completed": false,
+      "userId": "23c6",
+      "createdAt": "2025-11-26T21:02:49.529Z"
+    },
+    {
+      "id": "c45d",
+      "title": "Plan de Embalaje Detallado",
+      "description": "Crea un calendario de embalaje por zonas. Compra cajas, cinta y marcadores. Empieza por lo menos usado.",
+      "completed": false,
+      "userId": "23c6",
+      "createdAt": "2025-11-26T21:02:50.873Z"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "6f5c",
+      "userId": "23c6"
+    }
+  ]
+}
