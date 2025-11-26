@@ -1,22 +1,21 @@
 import { Stack, useSegments, router, useRootNavigationState } from 'expo-router';
 import { useEffect } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { AuthProvider, useAuth } from '../lib/context/AuthContext';
 import { TaskProvider } from '../lib/context/TaskContext';
 import '../global.css';
 
 function RootLayoutNav() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const segments = useSegments();
   const navigationState = useRootNavigationState();
 
   useEffect(() => {
-    // Esperar a que la navegación esté lista
-    if (!navigationState?.key) return;
+    if (loading || !navigationState?.key) return;
 
     const currentPath = segments.join('/');
     const isAuthPage = currentPath.includes('login') || currentPath.includes('register');
 
-    // Usar setTimeout para evitar el error de navegación
     const timeout = setTimeout(() => {
       if (!isAuthenticated && !isAuthPage) {
         router.replace('/login');
@@ -26,7 +25,15 @@ function RootLayoutNav() {
     }, 1);
 
     return () => clearTimeout(timeout);
-  }, [isAuthenticated, segments, navigationState?.key]);
+  }, [isAuthenticated, segments, navigationState?.key, loading]);
+
+  if (loading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background-light dark:bg-background-dark">
+        <ActivityIndicator size="large" color="#7f19e6" />
+      </View>
+    );
+  }
 
   return (
     <TaskProvider>

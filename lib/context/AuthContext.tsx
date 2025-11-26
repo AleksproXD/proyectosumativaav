@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, LoginFormData, RegisterFormData } from '../types/Auth';
+import { loadDatabase, saveDatabase } from '../services/database';
 
 interface AuthContextType {
   user: User | null;
@@ -7,28 +8,50 @@ interface AuthContextType {
   login: (data: LoginFormData) => Promise<boolean>;
   register: (data: RegisterFormData) => Promise<boolean>;
   logout: () => void;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const mockUsers: { email: string; password: string; name: string }[] = [];
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadCurrentUser();
+  }, []);
+
+  const loadCurrentUser = async () => {
+    try {
+      const db = await loadDatabase();
+      if (db.currentUser) {
+        setUser(db.currentUser);
+      }
+    } catch (error) {
+      console.error('Error cargando usuario:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const login = async (data: LoginFormData): Promise<boolean> => {
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const foundUser = mockUsers.find(
+    const db = await loadDatabase();
+    const foundUser = db.users.find(
       u => u.email === data.email && u.password === data.password
     );
 
     if (foundUser) {
-      setUser({
-        id: Date.now().toString(),
+      const userData: User = {
+        id: foundUser.id,
         email: foundUser.email,
         name: foundUser.name,
-      });
+      };
+      
+      setUser(userData);
+      db.currentUser = userData;
+      await saveDatabase(db);
       return true;
     }
 
@@ -38,28 +61,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const register = async (data: RegisterFormData): Promise<boolean> => {
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const existingUser = mockUsers.find(u => u.email === data.email);
+    const db = await loadDatabase();
+    const existingUser = db.users.find(u => u.email === data.email);
+    
     if (existingUser) {
       return false;
     }
 
-    mockUsers.push({
+    const newUser = {
+      id: Date.now().toString(),
       email: data.email,
       password: data.password,
       name: data.name,
-    });
+    };
 
-    setUser({
-      id: Date.now().toString(),
-      email: data.email,
-      name: data.name,
-    });
+    db.users.push(newUser);
+
+    const userData: User = {
+      id: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+    };
+
+    setUser(userData);
+    db.currentUser = userData;
+    await saveDatabase(db);
 
     return true;
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null);
+    const db = await loadDatabase();
+    db.currentUser = null;
+    await saveDatabase(db);
   };
 
   return (
@@ -70,6 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         login,
         register,
         logout,
+        loading,
       }}
     >
       {children}
