@@ -39,3 +39,5 @@ TypeScript para type-safety
 Validación con Zod
 Estado global con Context API
 Estilos con NativeWind 4
+
+![GIF_20251126_161920_309](https://github.com/user-attachments/assets/be9d8074-18f8-49eb-a8e3-8fd65b097d0d)
