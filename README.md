@@ -1,51 +1,44 @@
 > Edited for use in IDX on 07/09/12
 
-# Welcome to your Expo app 👋
+📝 Task Manager con IA - Gemini 2.0 Flash
+Aplicación móvil y web de gestión de tareas potenciada por Inteligencia Artificial usando Gemini 2.0 Flash de Google. Desarrollada con React Native, Expo Router y NativeWind.
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+✨ Características Principales
+🤖 Generación de Tareas con IA
 
-## Get started
+Integración con Gemini 2.5 Flash (el modelo más avanzado de Google)
+Generación inteligente de 3-5 tareas basadas en prompts naturales
+Sugerencias contextuales y accionables
+Respuestas optimizadas en menos de 2 segundos
 
-#### Android
+🎨 Interfaz Moderna
 
-Android previews are defined as a `workspace.onStart` hook and started as a vscode task when the workspace is opened/started.
+Diseño intuitivo y minimalista con NativeWind (Tailwind CSS)
+Modo claro/oscuro automático
+Animaciones fluidas y microinteracciones
+Responsive design para web, iOS y Android
 
-Note, if you can't find the task, either:
-- Rebuild the environment (using command palette: `IDX: Rebuild Environment`), or
-- Run `npm run android -- --tunnel` command manually run android and see the output in your terminal. The device should pick up this new command and switch to start displaying the output from it.
+🔐 Sistema de Autenticación
 
-In the output of this command/task, you'll find options to open the app in a
+Registro e inicio de sesión seguro
+Validación robusta con Zod schemas
+Gestión de sesiones persistentes
+Formularios con validación en tiempo real
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+📋 Gestión de Tareas
 
-You'll also find options to open the app's developer menu, reload the app, and more.
+Crear, editar, completar y eliminar tareas
+Tareas rápidas sin descripción
+Separación visual entre pendientes y completadas
+Persistencia de datos con JSON Server
 
-#### Web
+🚀 Tecnologías Modernas
 
-Web previews will be started and managred automatically. Use the toolbar to manually refresh.
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
+File-based routing con Expo Router
+TypeScript para type-safety
+Validación con Zod
+Estado global con Context API
+Estilos con NativeWind 4
 
 Join our community of developers creating universal apps.
 
